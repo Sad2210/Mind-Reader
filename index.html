@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Crypto Mind Reader</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at 70% 30%, #2b2250 0%, #0e0020 100%);
+      color: #fff;
+      font-family: 'Montserrat', Arial, sans-serif;
+      overflow-x: hidden;
+    }
+    h1, h2 {
+      font-family: 'Orbitron', monospace;
+      letter-spacing: 2px;
+      color: #c2a7fb;
+      text-shadow: 0 0 4px #d64be3, 0 0 12px #7ee0ff;
+    }
+    .container {
+      max-width: 700px;
+      margin: 40px auto;
+      background: rgba(30,20,60,0.85);
+      padding: 32px 24px;
+      border-radius: 26px;
+      box-shadow: 0 0 24px #57346999;
+      position: relative;
+    }
+    .crypto-box {
+      display: inline-block;
+      margin: 8px;
+      background: #341165;
+      padding: 8px 16px;
+      border-radius: 8px;
+      box-shadow: 0 0 5px #60b5ff88;
+      font-size: 1rem;
+      transition: all 0.2s;
+    }
+    .buttons {
+      margin-top: 28px;
+    }
+    button {
+      font-size: 1.2em;
+      margin: 8px;
+      border: none;
+      background: linear-gradient(90deg, #90e7ff 40%, #eb84ee 100%);
+      color: #220043;
+      padding: 10px 32px;
+      border-radius: 10px;
+      font-family: inherit;
+      cursor: pointer;
+      font-weight: bold;
+      box-shadow: 0 0 4px #2badff80;
+      transition: background 0.25s;
+    }
+    button.yes { background: linear-gradient(90deg,#33ff99 50%,#3bbcff 100%);}
+    button.no { background: linear-gradient(90deg,#ff235a 35%,#ffb766 100%);}
+    button:active { background: #fff2da; }
+    .page-enter { animation: fadeIn 0.7s; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(30px);}
+      to { opacity: 1; transform: none; }
+    }
+    .crypto-reveal {
+      background: #301043;
+      padding: 36px 24px;
+      border-radius: 16px;
+      text-align: center;
+      box-shadow: 0 0 24px #df1cff99;
+      margin-top: 22px;
+      animation: pulse 1.5s infinite alternate;
+    }
+    @keyframes pulse {
+      from { box-shadow: 0 0 24px #df1cff99;}
+      to   { box-shadow: 0 0 54px #fff634;}
+    }
+    .firework { position: absolute; top: 50%; left: 50%; width: 100px; height: 100px; z-index: 9; pointer-events: none;}
+    .firework span {position:absolute;width:8px;height:8px;border-radius:4px; background: #fff;animation: fire 1s linear;}
+    @keyframes fire {
+      from {opacity:1;transform:scale(1) translate(0,0);}
+      to   {opacity:0;transform:scale(0.5) translate(var(--x),var(--y));}
+    }
+  </style>
+</head>
+<body>
+  <div class="container page-enter" id="game"></div>
+
+  <!-- Cosmic sound effect, optional -->
+  <audio id="sfx" src="https://cdn.pixabay.com/audio/2022/07/26/audio_121b349e60.mp3"></audio>
+  <script>
+    // List of cryptos
+    const cryptos = [
+      "Bitcoin (BTC)", "Ethereum (ETH)", "Tether (USDT)", "BNB (BNB)", "Solana (SOL)",
+      "XRP (XRP)", "Dogecoin (DOGE)", "Cardano (ADA)", "Avalanche (AVAX)", "Shiba Inu (SHIB)",
+      "Polkadot (DOT)", "Chainlink (LINK)", "Hyperliquid (HYPE)", "Pi (PI)", "Zcash (ZEC)",
+      "FLOKI (FLOKI)", "Sui (SUI)", "Pepe (PEPE)", "Litecoin (LTC)", "Stellar (XLM)"
+    ];
+    // Pages correspond to bit positions; 5 bits cover 20 cryptos (0-19)
+    const totalPages = 5; // pages 2-6
+    
+    let stage = 0; // 0: pick, then pages 2–6, then reveal
+    let answers = [];
+    let pageContent = [];
+    
+    // Prepare bit pages
+    function getBitPage(pos) {
+      // pos: 0 (LSB) to 4 (MSB)
+      let arr = [];
+      for(let i=0;i<cryptos.length;i++) {
+        // assign crypto #i binary as i+1 (1-based to match display)
+        if (((i+1) >> pos) & 1) arr.push({idx:i+1, name:cryptos[i]});
+      }
+      return arr;
+    }
+    for(let i=0;i<totalPages;i++) { pageContent.push(getBitPage(i)); }
+    
+    function playSound() {
+      try { document.getElementById("sfx").play(); } catch{}
+    }
+    // Firework celebration
+    function fireworks() {
+      for(let i=0;i<22;i++) {
+        let fw = document.createElement('span');
+        fw.style.left='50px';
+        fw.style.top='50px';
+        fw.style.background=`hsl(${Math.random()*360},90%,70%)`;
+        fw.style.setProperty('--x', (Math.random()-0.5)*140+'px');
+        fw.style.setProperty('--y', (Math.random()-0.5)*140+'px');
+        fw.classList.add('firework');
+        document.body.appendChild(fw);
+        setTimeout(()=>fw.remove(),1000);
+      }
+    }
+
+    function showPage(stageNum) {
+      let el = document.getElementById('game');
+      el.classList.remove('page-enter');
+      void el.offsetWidth; // force
+      el.classList.add('page-enter');
+      
+      if (stageNum === 0) {
+        el.innerHTML = `<h1>Cosmic Crypto Mind Reader</h1>
+        <h2>Pick a crypto from the cosmic list (just in your mind):</h2>
+        <div>${cryptos.map((c,i)=>`<span class="crypto-box">${i+1}. ${c}</span>`).join('')}</div>
+        <div class="buttons">
+          <button onclick="next()">I picked! 🚀</button>
+        </div>`;
+      } else if (stageNum >=1 && stageNum <= totalPages) {
+        let pageCryptos = pageContent[stageNum-1];
+        el.innerHTML = `<h2>Page ${stageNum+1}<br>Is your chosen crypto here?</h2>
+        <div>${pageCryptos.map(o=>`<span class="crypto-box">${o.idx}. ${o.name}</span>`).join('')}</div>
+        <div class="buttons">
+          <button class="yes" onclick="ansPage(1)">YES</button>
+          <button class="no" onclick="ansPage(0)">NO</button>
+        </div>`;
+      } else {
+        let bin = answers.reverse().join('');
+        let pickedIdx = parseInt(bin,2); // 1-based index
+        // PickedIdx in [1..20]
+        let reveal = pickedIdx >= 1 && pickedIdx <= cryptos.length ?
+          `<div class="crypto-reveal">
+            <h1>🤖 Your cosmic crypto is:</h1>
+            <span class="crypto-box" style="font-size:1.5em;background:#5d078f;">${pickedIdx}. ${cryptos[pickedIdx-1]}</span>
+            <p>Did I guess right? 🪐</p>
+          </div>` :
+          `<div class="crypto-reveal"><h1>Oops!</h1><p>Your answer doesn't match any crypto.<br>Please answer exactly for each page!</p></div>`;
+        playSound();
+        fireworks();
+        el.innerHTML = `
+          <h2>✨ Galactic Reveal ✨</h2>
+          ${reveal}
+          <div class="buttons">
+            <button onclick="restart()">Play Again</button>
+          </div>
+        `;
+      }
+    }
+    function next() {stage++; showPage(stage);}
+    function ansPage(a) {answers.push(a); next();}
+    function restart() {stage=0;answers=[];showPage(0);}
+    showPage(0);
+  </script>
+</body>
+</html>
